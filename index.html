@@ -4,6 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0b0d10">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Italy Trip">
+<link rel="apple-touch-icon" href="icon.png">
+
 <title>Florence → Rome · Itinerary</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap">
@@ -135,6 +141,30 @@
   .shop .item .where { margin-top: 2px; }
   .btn.claude { color: #e8a87c; border-color: color-mix(in srgb, #d97757 45%, var(--line)); background: color-mix(in srgb, #d97757 10%, var(--panel-2)); }
   .askday { color: #e8a87c; text-decoration: none; font-size: 12.5px; }
+
+  /* Phone */
+  html { -webkit-text-size-adjust: 100%; }
+  button, a { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+  @media (max-width: 640px) {
+    body { font-size: 16px; }
+    header { padding: calc(18px + env(safe-area-inset-top)) 16px 4px; }
+    nav.days .inner { padding: 8px 16px; }
+    nav.days button { padding: 10px 14px; font-size: 14px; }
+    main { padding: 12px 12px calc(40px + env(safe-area-inset-bottom)); gap: 14px; }
+    #map { height: 38vh; min-height: 240px; }
+    .stop { grid-template-columns: 1fr; gap: 6px; padding: 14px; }
+    .time { display: flex; gap: 6px; align-items: baseline; font-size: 13px; color: var(--accent); }
+    .time small { display: inline; }
+    .title { font-size: 17px; line-height: 1.3; }
+    .notes { font-size: 14.5px; }
+    .row { gap: 8px; }
+    .btn { font-size: 14px; padding: 10px 14px; min-height: 44px; display: inline-flex; align-items: center; border-radius: 10px; }
+    .fbtn { padding: 9px 14px; font-size: 14px; min-height: 40px; }
+    .frow .lbl { width: 38px; }
+    .fsummary { flex-direction: column; gap: 8px; }
+    .shop .item { flex-direction: column; align-items: stretch; }
+    section.card { padding: 14px; }
+  }
   footer { color: var(--muted); font-size: 12px; text-align: center; padding: 0 20px 40px; }
 </style>
 </head>
@@ -189,9 +219,14 @@ L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
 let layer = L.layerGroup().addTo(map);
 let markers = [];
 
-const gmaps = (s) => s.mapsQuery
-  ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.mapsQuery)}`
-  : `https://www.google.com/maps/search/?api=1&query=${s.lat},${s.lng}`;
+// Apple Maps: walking directions to the place. Opens the Maps app on iPhone.
+const gmaps = (s) => {
+  const name = s.mapsQuery || s.title || s.name || "";
+  const p = new URLSearchParams({ dirflg: "w" });
+  if (s.lat != null) { p.set("daddr", `${s.lat},${s.lng}`); p.set("q", name); }
+  else p.set("daddr", name);
+  return `https://maps.apple.com/?${p}`;
+};
 
 function romeNow() {
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -318,7 +353,7 @@ function render(dayId, keepView = false) {
         ${s.notes?.length ? `<ul class="notes">${s.notes.map((x) => `<li>${x}</li>`).join("")}</ul>` : ""}
         <div class="row">
           <span class="status ${cls}">${s.statusLabel || label}</span>
-          ${hasPin || s.mapsQuery ? `<a class="btn" href="${gmaps(s)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Directions ↗</a>` : ""}
+          ${hasPin || s.mapsQuery ? `<a class="btn" href="${gmaps(s)}" target="_blank" rel="noopener" onclick="event.stopPropagation()"> Directions ↗</a>` : ""}
           <a class="btn claude" href="${askStop(s, day)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">✦ Ask Claude</a>
           ${(s.links || []).map((l) => `<a class="btn" href="${l.url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${l.label} ↗</a>`).join("")}
         </div>
@@ -326,7 +361,7 @@ function render(dayId, keepView = false) {
     if (hasPin) {
       const icon = L.divIcon({ className: "", html: `<div class="pin" style="background:${color}">${idx}</div>`, iconSize: [28, 28], iconAnchor: [14, 14] });
       const m = L.marker([s.lat, s.lng], { icon }).addTo(layer)
-        .bindPopup(`<b>${s.title}</b>${fmt(s.time)}${s.where ? ` · ${s.where}` : ""}<br><a href="${gmaps(s)}" target="_blank" rel="noopener">Directions ↗</a>`);
+        .bindPopup(`<b>${s.title}</b>${fmt(s.time)}${s.where ? ` · ${s.where}` : ""}<br><a href="${gmaps(s)}" target="_blank" rel="noopener"> Directions ↗</a>`);
       markers.push(m); pts.push([s.lat, s.lng]);
       card.onclick = () => { map.flyTo([s.lat, s.lng], 17, { duration: 0.6 }); m.openPopup(); document.getElementById("mapWrap").scrollIntoView({ behavior: "smooth", block: "nearest" }); };
     }
