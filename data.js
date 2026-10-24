@@ -9,7 +9,7 @@ window.TRIP = {
       title: "Florence",
       subtitle: "Saturday 24 October: Medici palace, Duomo, then the Oltrarno",
       chips: ["Cover shoulders & knees", "Bring ID", "Small bag only"],
-      showShopping: false,
+      showShopping: true,
       center: [43.7696, 11.2558],
       stops: [
         {
@@ -218,28 +218,50 @@ window.TRIP = {
           ]
         },
         {
-          time: "20:00", status: "book",
-          statusLabel: "Call to book",
-          "cat": ["Food & drink"], title: "Dinner · Antico Ristoro di Cambi",
-          where: "Via Sant'Onofrio 1r, San Frediano",
-          lat: 43.76892, lng: 11.24302,
-          mapsQuery: "Antico Ristoro di Cambi, Firenze",
+          time: "19:30", end: "20:00", status: "walk",
+          "cat": ["Food & drink"], title: "Aperitivo · Il Santino",
+          where: "Via Santo Spirito 60r",
+          lat: 43.76899, lng: 11.24701,
+          mapsQuery: "Il Santino, Via Santo Spirito 60r, Firenze",
+          notes: ["Tiny wine bar right by the last shops, open until 11pm", "Next door to dinner"],
         },
         {
-          time: "22:00", status: "book",
+          time: "20:00", end: "22:00", status: "book",
+          statusLabel: "Book now",
+          "cat": ["Food & drink"], title: "Dinner · Il Santo Bevitore",
+          where: "Via Santo Spirito 64r · 7:30–11:30pm",
+          lat: 43.76908, lng: 11.24683,
+          mapsQuery: "Il Santo Bevitore, Via Santo Spirito 64r, Firenze",
+          notes: [
+            "Modern Tuscan and romantic, right on the shopping route",
+            "Order the riccioli all'nduja e pecorino",
+            "No steak tonight. Alternatives are in the card below.",
+          ],
+        },
+        {
+          time: "22:15", status: "book",
           statusLabel: "Call to book",
-          "cat": ["Food & drink"], title: "Drinks · Locale Firenze",
-          where: "Via delle Seggiole 12r",
+          "cat": ["Food & drink"], title: "Cocktails · Locale Firenze",
+          where: "Via delle Seggiole 12r · 6pm–2am",
           lat: 43.77108, lng: 11.26037,
           mapsQuery: "Locale Firenze, Via delle Seggiole 12r",
-          notes: ["+39 055 906 7188 (from a third-party listing)", "Renaissance palace courtyard, open until 2am"],
+          notes: ["Cocktails in a Renaissance palace courtyard", "About 20 min walk or a short taxi from Santo Spirito", "+39 055 906 7188 (from a third-party listing)"],
           links: [{ label: "Call", url: "tel:+390559067188" }],
+        },
+        {
+          time: "23:30", status: "walk",
+          statusLabel: "⚠ Check before going",
+          "cat": ["Food & drink"], title: "Jazz Club Firenze (unconfirmed)",
+          where: "Now listed at Drinking Blues, Piazza del Tiratoio",
+          mapsQuery: "Drinking Blues, Piazza del Tiratoio, Firenze",
+          notes: ["Google Maps marks it TEMPORARILY CLOSED", "Only go if you confirm it's open tonight"],
         },
       ],
       tips: [
         "Clocks go back one hour overnight, so tomorrow's 8:15 is 8:15 on the new time.",
         "Duomo bags: suitcases, backpacks and medium or large bags aren't allowed. A small crossbody is fine.",
         "Shoulders and knees must be covered at the cathedral.",
+        "Dinner skips: Da Ruggero and Cambi (both bistecca), Sabatino and Dalla Lola (closed tonight), Gurdulù (permanently closed).",
         "Shopping cut order if late: Bjørk, then Hello Wonderful. Don't miss Officine Nora before 6pm or Recollection before 7pm.",
         "Avoid: anyone offering to walk you to a \"leather factory\" or \"leather school\"",
         "Avoid: San Lorenzo market stalls (mostly imported) and TikTok discount shops like Misuri and Infinity Leather",
@@ -435,6 +457,11 @@ window.TRIP = {
 
   // Shopping list: add items here. Fields: name, what, day ("sat" | "sun"), lat/lng or mapsQuery.
   shopping: [
+    {"cat": ["Food & drink"], "name": "Osteria del Cinghiale Bianco", "what": "Borgo San Jacopo 43r · 6:00–10:30pm · traditional Tuscan since the late 1800s, by Ponte Vecchio and the easiest walk to Locale. Order the wild boar pasta, peposo or truffle dishes.", "day": "sat", "mapsQuery": "Osteria del Cinghiale Bianco, Borgo San Jacopo 43r, Firenze"},
+    {"cat": ["Food & drink"], "name": "Burro & Acciughe", "what": "Via dell'Orto 35r, San Frediano · 7:00–10:30pm · seafood, a break from meat", "day": "sat", "mapsQuery": "Burro e Acciughe, Via dell'Orto 35r, Firenze"},
+    {"cat": ["Food & drink"], "name": "Pandemonio di Casa Brogi", "what": "Via del Leone 50r · 7:30–10:30pm", "day": "sat", "mapsQuery": "Pandemonio di Casa Brogi, Via del Leone 50r, Firenze"},
+    {"cat": ["Food & drink"], "name": "Alla Vecchia Bettola", "what": "Viale Vasco Pratolini 3/5/7 · 7:30–10:30pm · known for steak, so order pasta", "day": "sat", "mapsQuery": "Alla Vecchia Bettola, Viale Vasco Pratolini, Firenze"},
+
     {
       "who": "her", "cat": ["Vintage", "Clothing"], "name": "Boutique Nadine",
       "what": "Lungarno Acciaiuoli 22r · Opens 10:30 · silk & designer vintage",
