@@ -241,7 +241,8 @@ function romeNow() {
   const get = (t) => parts.find((p) => p.type === t).value;
   return { date: `${get("year")}-${get("month")}-${get("day")}`, mins: (+get("hour") % 24) * 60 + +get("minute") };
 }
-const toMins = (t) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
+// Times before 5am belong to the previous night (e.g. 01:45 sorts after 23:30).
+const toMins = (t) => { const [h, m] = t.split(":").map(Number); return (h < 5 ? h + 24 : h) * 60 + m; };
 const fmt = (t) => { let [h, m] = t.split(":").map(Number); const ap = h >= 12 ? "pm" : "am"; h = ((h + 11) % 12) + 1; return `${h}:${String(m).padStart(2, "0")}${ap}`; };
 
 
