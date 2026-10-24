@@ -117,6 +117,22 @@
   .shop .item { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; padding: 10px 0; border-top: 1px solid var(--line); }
   .shop .item:first-child { border-top: 0; }
   .col { display: grid; gap: 14px; }
+
+  .filters { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; display: grid; gap: 10px; }
+  .frow { display: flex; gap: 6px; align-items: center; overflow-x: auto; scrollbar-width: none; }
+  .frow .lbl { flex: none; width: 44px; color: var(--muted); font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+  .fbtn { flex: none; font: inherit; font-size: 13px; padding: 5px 11px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel-2); color: var(--muted); cursor: pointer; }
+  .fbtn.on { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .fsummary { color: var(--muted); font-size: 12.5px; display: flex; justify-content: space-between; gap: 8px; }
+  .fsummary button { font: inherit; font-size: 12.5px; background: none; border: 0; color: var(--accent); cursor: pointer; padding: 0; }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .tag { font-size: 11.5px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+  .who { font-weight: 600; border: 0; }
+  .who-her { color: #ff9ecf; background: color-mix(in srgb, #ff9ecf 15%, transparent); }
+  .who-him { color: #7fd1ff; background: color-mix(in srgb, #7fd1ff 15%, transparent); }
+  .who-both { color: var(--accent); background: color-mix(in srgb, var(--accent) 15%, transparent); }
+  .backup-pill { font-size: 10.5px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); border: 1px dashed var(--line); padding: 1px 6px; border-radius: 6px; margin-left: 6px; vertical-align: 2px; }
+  .shop .item .where { margin-top: 2px; }
   footer { color: var(--muted); font-size: 12px; text-align: center; padding: 0 20px 40px; }
 </style>
 </head>
@@ -134,6 +150,12 @@
   <div id="mapWrap"><div id="map"></div></div>
   <div class="col">
     <div class="daymeta" id="dayMeta"></div>
+    <div class="filters" id="filters">
+      <div class="frow" id="fWho"></div>
+      <div class="frow" id="fCat"></div>
+      <div class="frow" id="fMore"></div>
+      <div class="fsummary"><span id="fCount"></span><button id="fReset">Reset filters</button></div>
+    </div>
     <div class="timeline" id="timeline"></div>
     <section class="card" id="shopCard">
       <h2>Backup shops</h2>
@@ -180,6 +202,41 @@ function romeNow() {
 const toMins = (t) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
 const fmt = (t) => { let [h, m] = t.split(":").map(Number); const ap = h >= 12 ? "pm" : "am"; h = ((h + 11) % 12) + 1; return `${h}:${String(m).padStart(2, "0")}${ap}`; };
 
+
+const WHO = [["all", "Everyone"], ["her", "Her"], ["him", "Him"], ["both", "Both of us"]];
+const CATS = ["All", "Leather", "Shoes", "Jewellery", "Clothing", "Vintage", "Markets", "Sights", "Food & drink", "Travel"];
+const F = Object.assign({ who: "all", cat: "All", backups: true, shopsOnly: false },
+  JSON.parse(localStorage.getItem("tripFilters") || "{}"));
+const saveF = () => localStorage.setItem("tripFilters", JSON.stringify(F));
+const WHO_LABEL = { her: "For her", him: "For him", both: "For both" };
+
+function matches(s) {
+  const isShop = !!s.who;
+  if (F.shopsOnly && !isShop) return false;
+  if (F.cat !== "All" && !(s.cat || []).includes(F.cat)) return false;
+  if (F.who === "all" || !isShop) return true;
+  if (F.who === "both") return s.who === "both";
+  return s.who === F.who || s.who === "both";
+}
+function tagsHtml(s) {
+  const w = s.who ? `<span class="tag who who-${s.who}">${WHO_LABEL[s.who]}</span>` : "";
+  return (w || s.cat?.length) ? `<div class="tags">${w}${(s.cat || []).map((c) => `<span class="tag">${c}</span>`).join("")}</div>` : "";
+}
+function renderFilters(day) {
+  const btn = (on, label, fn) => { const b = document.createElement("button"); b.className = "fbtn" + (on ? " on" : ""); b.textContent = label; b.onclick = () => { fn(); saveF(); render(currentDay); }; return b; };
+  const row = (id, lbl, items) => { const el = document.getElementById(id); el.innerHTML = `<span class="lbl">${lbl}</span>`; items.forEach((b) => el.appendChild(b)); };
+  const present = new Set(["All"]);
+  day.stops.concat((TRIP.shopping || []).filter((s) => s.day === day.id)).forEach((s) => (s.cat || []).forEach((c) => present.add(c)));
+  row("fWho", "For", WHO.map(([k, l]) => btn(F.who === k, l, () => (F.who = k))));
+  row("fCat", "Type", CATS.filter((c) => present.has(c) || F.cat === c).map((c) => btn(F.cat === c, c, () => (F.cat = c))));
+  row("fMore", "Show", [
+    btn(F.shopsOnly, "Shops only", () => (F.shopsOnly = !F.shopsOnly)),
+    btn(F.backups, "Backup options", () => (F.backups = !F.backups)),
+  ]);
+  document.getElementById("fReset").onclick = () => { Object.assign(F, { who: "all", cat: "All", backups: true, shopsOnly: false }); saveF(); render(currentDay); };
+}
+let currentDay = null;
+
 function renderTabs(activeId) {
   const el = document.getElementById("dayTabs");
   el.innerHTML = "";
@@ -194,7 +251,9 @@ function renderTabs(activeId) {
 
 function render(dayId, keepView = false) {
   const day = TRIP.days.find((d) => d.id === dayId) || TRIP.days[0];
+  currentDay = day.id;
   renderTabs(day.id);
+  renderFilters(day);
   document.getElementById("dayTitle").textContent = day.title;
   document.getElementById("daySub").textContent = day.subtitle;
   document.getElementById("dayMeta").innerHTML = (day.chips || []).map((c) => `<span class="chip">${c}</span>`).join("");
@@ -207,7 +266,10 @@ function render(dayId, keepView = false) {
   const pts = [];
   let n = 0;
 
-  day.stops.forEach((s, i) => {
+  const visible = day.stops.filter(matches);
+  document.getElementById("fCount").textContent = `Showing ${visible.length} of ${day.stops.length} stops`;
+  if (!visible.length) tl.innerHTML = `<div class="empty">Nothing matches these filters on this day.</div>`;
+  visible.forEach((s, i) => {
     const [label, cls, color] = STATUS[s.status] || STATUS.walk;
     const hasPin = s.lat != null;
     if (hasPin) n++;
@@ -223,6 +285,7 @@ function render(dayId, keepView = false) {
       <div>
         <div class="title">${idx ? `<span class="num" style="background:${color}">${idx}</span>` : ""}${s.title}</div>
         ${s.where ? `<div class="where">${s.where}</div>` : ""}
+        ${tagsHtml(s)}
         ${s.notes?.length ? `<ul class="notes">${s.notes.map((x) => `<li>${x}</li>`).join("")}</ul>` : ""}
         <div class="row">
           <span class="status ${cls}">${s.statusLabel || label}</span>
@@ -251,13 +314,14 @@ function render(dayId, keepView = false) {
 }
 
 function renderShopping(day) {
-  const list = (TRIP.shopping || []).filter((s) => !s.day || s.day === day.id);
+  const all = (TRIP.shopping || []).filter((s) => !s.day || s.day === day.id);
+  const list = all.filter(matches);
   const el = document.getElementById("shopList");
-  document.getElementById("shopCard").style.display = day.showShopping ? "" : "none";
-  if (!list.length) { el.innerHTML = `<div class="empty">Shopping list coming soon ✨</div>`; return; }
+  document.getElementById("shopCard").style.display = day.showShopping && F.backups && all.length ? "" : "none";
+  if (!list.length) { el.innerHTML = `<div class="empty">No backups match these filters.</div>`; return; }
   el.innerHTML = list.map((s) => `
     <div class="item">
-      <div><b>${s.name}</b>${s.what ? `<div class="where">${s.what}</div>` : ""}</div>
+      <div><b>${s.name}</b><span class="backup-pill">Backup</span>${s.what ? `<div class="where">${s.what}</div>` : ""}${tagsHtml(s)}</div>
       ${s.lat != null || s.mapsQuery ? `<a class="btn" href="${gmaps(s)}" target="_blank" rel="noopener">Map ↗</a>` : ""}
     </div>`).join("");
   list.filter((s) => s.lat != null).forEach((s) => {
