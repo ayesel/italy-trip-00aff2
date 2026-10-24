@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0d10">
+<title>Florence → Rome · Itinerary</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  :root {
+    --bg: #0b0d10;
+    --panel: #12151a;
+    --panel-2: #181c22;
+    --line: #232831;
+    --text: #e8eaed;
+    --muted: #8b939e;
+    --accent: #e0b872;
+    --booked: #6fcf97;
+    --book: #f2994a;
+    --walk: #7aa7ff;
+    --free: #b38cff;
+    --radius: 16px;
+  }
+  @media (prefers-color-scheme: light) {
+    :root.auto {
+      --bg: #f6f5f2; --panel: #ffffff; --panel-2: #f1efea; --line: #e3e0d8;
+      --text: #1b1d21; --muted: #6b7079; --accent: #a8792b;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); }
+  body { font: 15px/1.5 Inter, system-ui, -apple-system, sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: inherit; }
+
+  header {
+    padding: calc(28px + env(safe-area-inset-top)) 20px 8px;
+    max-width: 1200px; margin: 0 auto;
+  }
+  .eyebrow { color: var(--accent); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; font-weight: 600; }
+  h1 { font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: clamp(28px, 6vw, 44px); margin: 6px 0 4px; letter-spacing: -.01em; }
+  .sub { color: var(--muted); margin: 0; }
+  .clock { margin-top: 10px; display: inline-flex; gap: 8px; align-items: center; color: var(--muted); font-size: 13px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--booked); box-shadow: 0 0 0 4px color-mix(in srgb, var(--booked) 20%, transparent); }
+
+  nav.days {
+    position: sticky; top: 0; z-index: 1000;
+    background: color-mix(in srgb, var(--bg) 85%, transparent);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--line);
+  }
+  nav.days .inner { max-width: 1200px; margin: 0 auto; padding: 10px 20px; display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+  nav.days button {
+    flex: none; border: 1px solid var(--line); background: var(--panel); color: var(--muted);
+    padding: 8px 14px; border-radius: 999px; font: inherit; font-weight: 500; cursor: pointer;
+  }
+  nav.days button.active { color: var(--bg); background: var(--text); border-color: var(--text); }
+
+  main { max-width: 1200px; margin: 0 auto; padding: 16px 20px 60px; display: grid; gap: 20px; grid-template-columns: 1fr; }
+  @media (min-width: 960px) {
+    main { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); align-items: start; }
+    #mapWrap { position: sticky; top: 72px; }
+  }
+
+  #mapWrap { border-radius: var(--radius); overflow: hidden; border: 1px solid var(--line); background: var(--panel); }
+  #map { height: 42vh; min-height: 280px; }
+  @media (min-width: 960px) { #map { height: calc(100vh - 110px); } }
+  .leaflet-container { background: #0e1114; font: inherit; }
+  .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(.9) contrast(.85) saturate(.6); }
+  .leaflet-control-attribution { background: rgba(11,13,16,.7) !important; color: var(--muted) !important; }
+  .leaflet-control-attribution a { color: var(--muted) !important; }
+  .leaflet-popup-content-wrapper, .leaflet-popup-tip { background: var(--panel-2); color: var(--text); border: 1px solid var(--line); }
+  .leaflet-popup-content { margin: 12px 14px; }
+  .leaflet-popup-content b { display: block; margin-bottom: 2px; }
+  .leaflet-control-zoom a { background: var(--panel) !important; color: var(--text) !important; border-color: var(--line) !important; }
+  .pin {
+    width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center;
+    font-weight: 700; font-size: 12px; color: #0b0d10; border: 2px solid #0b0d10;
+    box-shadow: 0 2px 10px rgba(0,0,0,.5);
+  }
+
+  .daymeta { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
+  .chip { font-size: 12px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); background: var(--panel); }
+
+  .timeline { display: grid; gap: 10px; }
+  .stop {
+    display: grid; grid-template-columns: 64px 1fr; gap: 14px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 14px 16px; cursor: pointer; transition: border-color .15s, transform .15s;
+  }
+  .stop:hover { border-color: color-mix(in srgb, var(--accent) 50%, var(--line)); }
+  .stop.now { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+  .stop.past { opacity: .5; }
+  .time { font-variant-numeric: tabular-nums; font-weight: 600; font-size: 14px; }
+  .time small { display: block; color: var(--muted); font-weight: 400; font-size: 12px; }
+  .num { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; font-size: 11px; font-weight: 700; color: #0b0d10; margin-right: 8px; vertical-align: 2px; }
+  .title { font-weight: 600; font-size: 16px; }
+  .where { color: var(--muted); font-size: 13px; }
+  .notes { margin: 8px 0 0; padding: 0; list-style: none; display: grid; gap: 4px; font-size: 13.5px; color: color-mix(in srgb, var(--text) 85%, var(--muted)); }
+  .notes li::before { content: "·"; color: var(--accent); margin-right: 8px; font-weight: 700; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
+  .status { font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; padding: 3px 8px; border-radius: 6px; }
+  .s-booked { color: var(--booked); background: color-mix(in srgb, var(--booked) 14%, transparent); }
+  .s-book { color: var(--book); background: color-mix(in srgb, var(--book) 14%, transparent); }
+  .s-walk { color: var(--walk); background: color-mix(in srgb, var(--walk) 14%, transparent); }
+  .s-free { color: var(--free); background: color-mix(in srgb, var(--free) 14%, transparent); }
+  .btn { font-size: 12.5px; text-decoration: none; padding: 5px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel-2); }
+  .btn:hover { border-color: var(--muted); }
+
+  section.card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; }
+  section.card h2 { font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 20px; margin: 0 0 8px; }
+  section.card ul { margin: 0; padding-left: 18px; color: color-mix(in srgb, var(--text) 85%, var(--muted)); }
+  section.card li { margin: 4px 0; }
+  .empty { color: var(--muted); font-size: 14px; border: 1px dashed var(--line); border-radius: 12px; padding: 14px; text-align: center; }
+  .shop { display: grid; gap: 8px; }
+  .shop .item { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; padding: 10px 0; border-top: 1px solid var(--line); }
+  .shop .item:first-child { border-top: 0; }
+  .col { display: grid; gap: 14px; }
+  footer { color: var(--muted); font-size: 12px; text-align: center; padding: 0 20px 40px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="eyebrow">Honeymoon · Florence → Rome</div>
+  <h1 id="dayTitle">Florence</h1>
+  <p class="sub" id="daySub"></p>
+  <div class="clock"><span class="dot"></span><span id="clock">—</span></div>
+</header>
+
+<nav class="days"><div class="inner" id="dayTabs"></div></nav>
+
+<main>
+  <div id="mapWrap"><div id="map"></div></div>
+  <div class="col">
+    <div class="daymeta" id="dayMeta"></div>
+    <div class="timeline" id="timeline"></div>
+    <section class="card" id="shopCard">
+      <h2>Shopping</h2>
+      <div class="shop" id="shopList"></div>
+    </section>
+    <section class="card" id="tipsCard">
+      <h2>Good to know</h2>
+      <ul id="tips"></ul>
+    </section>
+  </div>
+</main>
+<footer>Times are local (Europe/Rome). Clocks go back one hour overnight Sat → Sun.</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="data.js"></script>
+<script>
+const STATUS = {
+  booked: ["Booked", "s-booked", "#6fcf97"],
+  book:   ["Book / confirm", "s-book", "#f2994a"],
+  walk:   ["Walk-in", "s-walk", "#7aa7ff"],
+  free:   ["Free", "s-free", "#b38cff"],
+};
+
+const map = L.map("map", { zoomControl: true, attributionControl: true });
+L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  maxZoom: 19,
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+}).addTo(map);
+let layer = L.layerGroup().addTo(map);
+let markers = [];
+
+const gmaps = (s) => s.mapsQuery
+  ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.mapsQuery)}`
+  : `https://www.google.com/maps/search/?api=1&query=${s.lat},${s.lng}`;
+
+function romeNow() {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Rome", year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", hour12: false,
+  }).formatToParts(new Date());
+  const get = (t) => parts.find((p) => p.type === t).value;
+  return { date: `${get("year")}-${get("month")}-${get("day")}`, mins: (+get("hour") % 24) * 60 + +get("minute") };
+}
+const toMins = (t) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
+const fmt = (t) => { let [h, m] = t.split(":").map(Number); const ap = h >= 12 ? "pm" : "am"; h = ((h + 11) % 12) + 1; return `${h}:${String(m).padStart(2, "0")}${ap}`; };
+
+function renderTabs(activeId) {
+  const el = document.getElementById("dayTabs");
+  el.innerHTML = "";
+  TRIP.days.forEach((d) => {
+    const b = document.createElement("button");
+    b.textContent = d.tab;
+    b.className = d.id === activeId ? "active" : "";
+    b.onclick = () => { location.hash = d.id; render(d.id); };
+    el.appendChild(b);
+  });
+}
+
+function render(dayId, keepView = false) {
+  const day = TRIP.days.find((d) => d.id === dayId) || TRIP.days[0];
+  renderTabs(day.id);
+  document.getElementById("dayTitle").textContent = day.title;
+  document.getElementById("daySub").textContent = day.subtitle;
+  document.getElementById("dayMeta").innerHTML = (day.chips || []).map((c) => `<span class="chip">${c}</span>`).join("");
+
+  const now = romeNow();
+  const isToday = now.date === day.date;
+  const tl = document.getElementById("timeline");
+  tl.innerHTML = "";
+  layer.clearLayers(); markers = [];
+  const pts = [];
+  let n = 0;
+
+  day.stops.forEach((s, i) => {
+    const [label, cls, color] = STATUS[s.status] || STATUS.walk;
+    const hasPin = s.lat != null;
+    if (hasPin) n++;
+    const idx = hasPin ? n : null;
+
+    const start = toMins(s.time), end = s.end ? toMins(s.end) : start + 60;
+    const state = !isToday ? "" : now.mins >= end ? "past" : now.mins >= start ? "now" : "";
+
+    const card = document.createElement("div");
+    card.className = `stop ${state}`;
+    card.innerHTML = `
+      <div class="time">${fmt(s.time)}${s.end ? `<small>→ ${fmt(s.end)}</small>` : ""}</div>
+      <div>
+        <div class="title">${idx ? `<span class="num" style="background:${color}">${idx}</span>` : ""}${s.title}</div>
+        ${s.where ? `<div class="where">${s.where}</div>` : ""}
+        ${s.notes?.length ? `<ul class="notes">${s.notes.map((x) => `<li>${x}</li>`).join("")}</ul>` : ""}
+        <div class="row">
+          <span class="status ${cls}">${s.statusLabel || label}</span>
+          ${hasPin || s.mapsQuery ? `<a class="btn" href="${gmaps(s)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Directions ↗</a>` : ""}
+          ${(s.links || []).map((l) => `<a class="btn" href="${l.url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${l.label} ↗</a>`).join("")}
+        </div>
+      </div>`;
+    if (hasPin) {
+      const icon = L.divIcon({ className: "", html: `<div class="pin" style="background:${color}">${idx}</div>`, iconSize: [28, 28], iconAnchor: [14, 14] });
+      const m = L.marker([s.lat, s.lng], { icon }).addTo(layer)
+        .bindPopup(`<b>${s.title}</b>${fmt(s.time)}${s.where ? ` · ${s.where}` : ""}<br><a href="${gmaps(s)}" target="_blank" rel="noopener">Directions ↗</a>`);
+      markers.push(m); pts.push([s.lat, s.lng]);
+      card.onclick = () => { map.flyTo([s.lat, s.lng], 17, { duration: 0.6 }); m.openPopup(); document.getElementById("mapWrap").scrollIntoView({ behavior: "smooth", block: "nearest" }); };
+    }
+    tl.appendChild(card);
+  });
+
+  if (pts.length > 1) L.polyline(pts, { color: "#e0b872", weight: 3, opacity: 0.7, dashArray: "6 8" }).addTo(layer);
+  if (keepView) {}
+  else if (pts.length) map.fitBounds(pts, { padding: [36, 36], maxZoom: 16 });
+  else map.setView(day.center || [43.7696, 11.2558], 14);
+
+  renderShopping(day);
+  document.getElementById("tips").innerHTML = (day.tips || []).map((t) => `<li>${t}</li>`).join("");
+  document.getElementById("tipsCard").style.display = day.tips?.length ? "" : "none";
+}
+
+function renderShopping(day) {
+  const list = (TRIP.shopping || []).filter((s) => !s.day || s.day === day.id);
+  const el = document.getElementById("shopList");
+  document.getElementById("shopCard").style.display = day.showShopping ? "" : "none";
+  if (!list.length) { el.innerHTML = `<div class="empty">Shopping list coming soon ✨</div>`; return; }
+  el.innerHTML = list.map((s) => `
+    <div class="item">
+      <div><b>${s.name}</b>${s.what ? `<div class="where">${s.what}</div>` : ""}</div>
+      ${s.lat != null || s.mapsQuery ? `<a class="btn" href="${gmaps(s)}" target="_blank" rel="noopener">Map ↗</a>` : ""}
+    </div>`).join("");
+  list.filter((s) => s.lat != null).forEach((s) => {
+    L.circleMarker([s.lat, s.lng], { radius: 6, color: "#e0b872", fillColor: "#e0b872", fillOpacity: 0.9, weight: 1 })
+      .addTo(layer).bindPopup(`<b>${s.name}</b>${s.what || ""}`);
+  });
+}
+
+function tick() {
+  const t = new Intl.DateTimeFormat("en-US", { timeZone: "Europe/Rome", weekday: "short", hour: "numeric", minute: "2-digit" }).format(new Date());
+  document.getElementById("clock").textContent = `Florence time · ${t}`;
+}
+
+const today = romeNow().date;
+const initial = location.hash.slice(1) || (TRIP.days.find((d) => d.date === today) || TRIP.days[0]).id;
+render(initial);
+tick();
+setInterval(() => { tick(); render(location.hash.slice(1) || initial, true); }, 60000);
+</script>
+</body>
+</html>
