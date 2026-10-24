@@ -165,6 +165,11 @@
     .shop .item { flex-direction: column; align-items: stretch; }
     section.card { padding: 14px; }
   }
+  .legwrap { display: flex; justify-content: flex-start; padding-left: 22px; margin: -4px 0; }
+  .leg { font-size: 12.5px; color: var(--muted); text-decoration: none; padding: 4px 10px; border-left: 2px dashed var(--line); }
+  .leg:hover { color: var(--text); }
+  .legtip { color: var(--book); margin-left: 4px; }
+  @media (max-width: 640px) { .leg { font-size: 13.5px; padding: 8px 12px; } }
   footer { color: var(--muted); font-size: 12px; text-align: center; padding: 0 20px 40px; }
 </style>
 </head>
@@ -300,6 +305,23 @@ function askDay(day) {
   return CLAUDE + encodeURIComponent(q.slice(0, 1800));
 }
 
+
+// Walking estimate: straight-line distance × 1.35 for Florence's winding streets, at 4.8 km/h.
+function walkLeg(a, b) {
+  const R = 6371000, rad = (d) => d * Math.PI / 180;
+  const dLat = rad(b.lat - a.lat), dLng = rad(b.lng - a.lng);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLng / 2) ** 2;
+  const m = 2 * R * Math.asin(Math.sqrt(h)) * 1.35;
+  return { m, mins: Math.max(1, Math.round(m / 80)) };
+}
+function legHtml(a, b) {
+  const { m, mins } = walkLeg(a, b);
+  const dist = m < 1000 ? `${Math.round(m / 10) * 10} m` : `${(m / 1000).toFixed(1)} km`;
+  const p = new URLSearchParams({ saddr: `${a.lat},${a.lng}`, daddr: `${b.lat},${b.lng}`, dirflg: "w" });
+  const far = mins > 25 ? `<span class="legtip">· long walk, consider a taxi</span>` : "";
+  return `<a class="leg" href="https://maps.apple.com/?${p}" target="_blank" rel="noopener">🚶 ${mins} min · ${dist}${far}</a>`;
+}
+
 function renderTabs(activeId) {
   const el = document.getElementById("dayTabs");
   el.innerHTML = "";
@@ -333,6 +355,7 @@ function render(dayId, keepView = false) {
   const visible = day.stops.filter(matches);
   document.getElementById("fCount").textContent = `Showing ${visible.length} of ${day.stops.length} stops`;
   if (!visible.length) tl.innerHTML = `<div class="empty">Nothing matches these filters on this day.</div>`;
+  let prevPt = null;
   visible.forEach((s, i) => {
     const [label, cls, color] = STATUS[s.status] || STATUS.walk;
     const hasPin = s.lat != null;
@@ -365,6 +388,13 @@ function render(dayId, keepView = false) {
       markers.push(m); pts.push([s.lat, s.lng]);
       card.onclick = () => { map.flyTo([s.lat, s.lng], 17, { duration: 0.6 }); m.openPopup(); document.getElementById("mapWrap").scrollIntoView({ behavior: "smooth", block: "nearest" }); };
     }
+    if (hasPin && prevPt) {
+      const leg = document.createElement("div");
+      leg.className = "legwrap";
+      leg.innerHTML = legHtml(prevPt, s);
+      tl.appendChild(leg);
+    }
+    if (hasPin) prevPt = s;
     tl.appendChild(card);
   });
 
