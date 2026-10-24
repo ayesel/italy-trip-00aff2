@@ -133,6 +133,8 @@
   .who-both { color: var(--accent); background: color-mix(in srgb, var(--accent) 15%, transparent); }
   .backup-pill { font-size: 10.5px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); border: 1px dashed var(--line); padding: 1px 6px; border-radius: 6px; margin-left: 6px; vertical-align: 2px; }
   .shop .item .where { margin-top: 2px; }
+  .btn.claude { color: #e8a87c; border-color: color-mix(in srgb, #d97757 45%, var(--line)); background: color-mix(in srgb, #d97757 10%, var(--panel-2)); }
+  .askday { color: #e8a87c; text-decoration: none; font-size: 12.5px; }
   footer { color: var(--muted); font-size: 12px; text-align: center; padding: 0 20px 40px; }
 </style>
 </head>
@@ -154,7 +156,7 @@
       <div class="frow" id="fWho"></div>
       <div class="frow" id="fCat"></div>
       <div class="frow" id="fMore"></div>
-      <div class="fsummary"><span id="fCount"></span><button id="fReset">Reset filters</button></div>
+      <div class="fsummary"><span id="fCount"></span><span style="display:flex;gap:14px"><a id="askDay" class="askday" target="_blank" rel="noopener">✦ Ask Claude about this day</a><button id="fReset">Reset filters</button></span></div>
     </div>
     <div class="timeline" id="timeline"></div>
     <section class="card" id="shopCard">
@@ -237,6 +239,32 @@ function renderFilters(day) {
 }
 let currentDay = null;
 
+
+const CLAUDE = "https://claude.ai/new?q=";
+const clean = (x) => String(x || "").replace(/<[^>]+>/g, "");
+function askStop(s, day) {
+  const bits = [
+    `I'm on my honeymoon in Italy (${day.title}, ${day.subtitle.split(":")[0]}).`,
+    `Next on my itinerary: "${clean(s.title || s.name)}"${s.time ? ` at ${fmt(s.time)}` : ""}${s.where ? `, ${clean(s.where)}` : ""}.`,
+    s.what ? `Details: ${clean(s.what)}.` : "",
+    s.notes?.length ? `My notes: ${s.notes.map(clean).join("; ")}.` : "",
+    s.who ? `This one is mainly ${s.who === "both" ? "for both of us" : `for ${s.who}`}.` : "",
+    (s.cat || []).some((c) => ["Leather", "Shoes", "Jewellery", "Clothing", "Vintage", "Markets"].includes(c))
+      ? "What should we look for or buy here, a fair price range, how to tell real quality from tourist stuff, and anything to know before we go in? Keep it short; I'm reading on my phone."
+      : (s.cat || []).includes("Food & drink")
+      ? "What should we order, roughly what will it cost, and anything to know (booking, dress, timing)? Keep it short; I'm reading on my phone."
+      : (s.cat || []).includes("Travel")
+      ? "Give me the quickest practical steps for this, including what to buy, where to go and any gotchas. Keep it short; I'm reading on my phone."
+      : "Give me the 5 things most worth seeing or knowing here and any practical tips (tickets, lines, dress code). Keep it short; I'm reading on my phone.",
+  ];
+  return CLAUDE + encodeURIComponent(bits.filter(Boolean).join(" "));
+}
+function askDay(day) {
+  const lines = day.stops.filter(matches).map((s) => `${fmt(s.time)} ${clean(s.title)}${s.where ? ` (${clean(s.where)})` : ""}`);
+  const q = `I'm on my honeymoon in Italy. Here's my plan for ${day.subtitle.split(":")[0]}:\n${lines.join("\n")}\n\nI'm reading this on my phone. Is the timing realistic? What would you change, and what's the one thing I shouldn't miss? Keep it short.`;
+  return CLAUDE + encodeURIComponent(q.slice(0, 1800));
+}
+
 function renderTabs(activeId) {
   const el = document.getElementById("dayTabs");
   el.innerHTML = "";
@@ -254,6 +282,7 @@ function render(dayId, keepView = false) {
   currentDay = day.id;
   renderTabs(day.id);
   renderFilters(day);
+  setTimeout(() => (document.getElementById("askDay").href = askDay(day)), 0);
   document.getElementById("dayTitle").textContent = day.title;
   document.getElementById("daySub").textContent = day.subtitle;
   document.getElementById("dayMeta").innerHTML = (day.chips || []).map((c) => `<span class="chip">${c}</span>`).join("");
@@ -290,6 +319,7 @@ function render(dayId, keepView = false) {
         <div class="row">
           <span class="status ${cls}">${s.statusLabel || label}</span>
           ${hasPin || s.mapsQuery ? `<a class="btn" href="${gmaps(s)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Directions ↗</a>` : ""}
+          <a class="btn claude" href="${askStop(s, day)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">✦ Ask Claude</a>
           ${(s.links || []).map((l) => `<a class="btn" href="${l.url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${l.label} ↗</a>`).join("")}
         </div>
       </div>`;
@@ -322,7 +352,7 @@ function renderShopping(day) {
   el.innerHTML = list.map((s) => `
     <div class="item">
       <div><b>${s.name}</b><span class="backup-pill">Backup</span>${s.what ? `<div class="where">${s.what}</div>` : ""}${tagsHtml(s)}</div>
-      ${s.lat != null || s.mapsQuery ? `<a class="btn" href="${gmaps(s)}" target="_blank" rel="noopener">Map ↗</a>` : ""}
+      <div style="display:flex;gap:6px;flex:none">${s.lat != null || s.mapsQuery ? `<a class="btn" href="${gmaps(s)}" target="_blank" rel="noopener">Map ↗</a>` : ""}<a class="btn claude" href="${askStop(s, day)}" target="_blank" rel="noopener">✦ Ask</a></div>
     </div>`).join("");
   list.filter((s) => s.lat != null).forEach((s) => {
     L.circleMarker([s.lat, s.lng], { radius: 6, color: "#e0b872", fillColor: "#e0b872", fillOpacity: 0.9, weight: 1 })
