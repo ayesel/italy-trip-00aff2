@@ -274,7 +274,7 @@ window.TRIP = {
       date: "2026-10-25",
       tab: "Sun 25 · Florence → Rome",
       title: "Florence → Rome",
-      subtitle: "Sunday 25 October: markets and leather, then a midday train to Rome",
+      subtitle: "Sunday 25 October: markets and leather, a midday train to Rome, then the catacombs",
       chips: ["Clocks went back 1h", "Cathedral closed to visitors"],
       showShopping: true,
       center: [43.7735, 11.256],
@@ -378,8 +378,8 @@ window.TRIP = {
           ]
         },
         {
-          "time": "11:45",
-          "end": "12:00",
+          "time": "11:30",
+          "end": "11:45",
           "status": "walk",
           "cat": ["Travel"], "title": "Head to Santa Maria Novella station",
           "where": "About 10 min on foot",
@@ -388,7 +388,8 @@ window.TRIP = {
           ]
         },
         {
-          "time": "12:15",
+          "time": "11:59",
+          "end": "13:35",
           "status": "book",
           "statusLabel": "Buy in app",
           "cat": ["Travel"], "title": "Train · Firenze SMN → Roma Termini",
@@ -396,7 +397,8 @@ window.TRIP = {
           "lat": 43.77634,
           "lng": 11.24813,
           "notes": [
-            "Frecciarossa (Trenitalia) or Italo, about 1h35, every 15–30 min",
+            "Frecciarossa 9311, arrives Roma Termini 13:35",
+            "Backup: the 11:48 (FR 9411) arrives at the same time. Avoid the 12:48, which arrives after 2pm",
             "Buy in the app; prices rise close to departure"
           ],
           "links": [
@@ -408,6 +410,43 @@ window.TRIP = {
               "label": "Italo",
               "url": "https://www.italotreno.com/en"
             }
+          ]
+        },
+        {
+          "time": "13:35",
+          "end": "14:10",
+          "status": "walk",
+          "cat": ["Travel"], "title": "Rome · drop bags, taxi to the Appian Way",
+          "where": "Roma Termini",
+          "mapsQuery": "Roma Termini",
+          "notes": [
+            "Taxi from the official rank, about 20–25 min and €20–25",
+            "Or Metro A to Arco di Travertino, then bus 218 (45–60 min)"
+          ]
+        },
+        {
+          "time": "14:30",
+          "end": "16:00",
+          "status": "walk",
+          "statusLabel": "Guided entry",
+          "cat": ["Sights"], "title": "Catacombs of San Callisto",
+          "where": "Via Appia Antica 110/126",
+          "mapsQuery": "Catacombe di San Callisto, Via Appia Antica 110, Roma",
+          "notes": [
+            "Guided tours only, about 35 min underground. Join the next English group",
+            "Reopens about 2pm after lunch, last entry around 4:30. Check hours before you go",
+            "San Sebastiano is a 10 min walk down the road if there's time"
+          ]
+        },
+        {
+          "time": "20:00",
+          "status": "book",
+          "statusLabel": "Not confirmed",
+          "cat": ["Food & drink"], "title": "Dinner · Hosteria Grappolo d'Oro",
+          "where": "Piazza della Cancelleria 80",
+          "mapsQuery": "Hosteria Grappolo d'Oro, Piazza della Cancelleria 80, Roma",
+          "notes": [
+            "Requested by email, but there's no confirmation. Book online or call"
           ]
         },
       ],
